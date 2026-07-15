@@ -23,7 +23,7 @@
 
         <nav class="nav" aria-label="主导航">
           <button class="nav-item active" data-view="home" type="button">
-            <i data-lucide="house"></i><span>本周</span>
+            <i data-lucide="house"></i><span>今日</span>
           </button>
           <button class="nav-item" data-view="review" type="button">
             <i data-lucide="messages-square"></i><span>复盘对话</span>
@@ -53,14 +53,40 @@
         <section class="view active" id="homeView">
           <div class="page-intro">
             <div>
-              <p class="eyebrow" id="weekLabel">本周 · 7 月 13 日至 7 月 19 日</p>
-              <h1>先看真实发生的事。</h1>
-              <p class="subcopy">不追求连续打卡。把这一周过明白，已经很重要。</p>
+              <p class="eyebrow" id="dayLabel">今天</p>
+              <div class="micro-start-title-line">
+                <div class="micro-start-wrap">
+                  <h1 class="micro-start-trigger" tabindex="0" aria-describedby="microStartExamples">微启动</h1>
+                  <div class="micro-start-examples" id="microStartExamples" role="tooltip">
+                    <p>想健身 -> 先只做 1 个俯卧撑。</p>
+                    <p>想做腹部训练 -> 先只铺开瑜伽垫。</p>
+                    <p>想跑步 -> 先只走到门口 / 穿上运动鞋。</p>
+                    <p>想读书 -> 每天只读 1 页。</p>
+                    <p>想写作 -> 每天只写 50 个词。</p>
+                    <p>想学习外语 -> 每天只学 1 个新单词。</p>
+                    <p>想练口语 -> 只对着镜子说一句：“I can do this.”</p>
+                    <p>想早睡 -> 先把手机放到床头以外。</p>
+                  </div>
+                </div>
+                <button class="record-icon-button" id="quickRecordButton" type="button" title="记录此刻" aria-label="记录此刻"><i data-lucide="pen-line"></i></button>
+              </div>
+              <p class="subcopy">微习惯，小到不可能失败。<br />A mini habit is too small to fail.</p>
             </div>
-            <button class="primary-button" id="startReviewButton" type="button">
-              <i data-lucide="arrow-right"></i><span>开始本周复盘</span>
-            </button>
           </div>
+
+          <section class="materials-section featured-materials">
+            <div class="section-heading">
+              <div class="micro-start-wrap action-hover-wrap">
+                <h2 class="micro-start-trigger action-heading" tabindex="0" aria-describedby="actionExamples">行动</h2>
+                <div class="micro-start-examples" id="actionExamples" role="tooltip">
+                  <p>我想靠近的内容。</p>
+                  <p>任何行动听到、读到、做到以后，留下一两句话。</p>
+                </div>
+              </div>
+              <button class="icon-button" id="addMaterialButton" type="button" title="添加素材" aria-label="添加素材"><i data-lucide="plus"></i></button>
+            </div>
+            <div class="material-list" id="materialList"></div>
+          </section>
 
           <div class="dashboard-grid">
             <section class="focus-panel">
@@ -157,29 +183,64 @@
 
     <dialog id="focusDialog" class="modal">
       <form method="dialog" class="modal-card" id="focusForm">
-        <div class="modal-header"><div><p class="eyebrow">本周重心</p><h2>给注意力留出边界</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="modal-header"><div><p class="eyebrow">本周重心</p><h2>给注意力留出边界</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
         <p class="modal-copy">最多选择两个方向。暂时没有选中的目标，不等于放弃。</p>
         <div class="selection-grid" id="topicSelector"></div>
-        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit">取消</button><button class="primary-button" id="saveFocusButton" value="default" type="submit">保存重心</button></div>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>取消</button><button class="primary-button" id="saveFocusButton" value="default" type="submit">保存重心</button></div>
       </form>
     </dialog>
 
     <dialog id="actionDialog" class="modal">
       <form method="dialog" class="modal-card" id="actionForm">
-        <div class="modal-header"><div><p class="eyebrow">下一步</p><h2>把行动缩小到能开始</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="modal-header"><div><p class="eyebrow">下一步</p><h2>把行动缩小到能开始</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
         <label class="form-label" for="actionText">我准备做什么</label>
         <input id="actionText" maxlength="80" placeholder="例如：周三早上读一篇文献的摘要，10 分钟" required />
         <label class="form-label" for="actionTime">准备在什么时候回应它</label>
         <input id="actionTime" type="datetime-local" />
-        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit">取消</button><button class="primary-button" value="default" type="submit">加入本周</button></div>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>取消</button><button class="primary-button" value="default" type="submit">加入本周</button></div>
       </form>
     </dialog>
 
     <dialog id="settingsDialog" class="modal">
       <form method="dialog" class="modal-card settings-card">
-        <div class="modal-header"><div><p class="eyebrow">提醒设置</p><h2>把复盘留在日历里</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="modal-header"><div><p class="eyebrow">提醒设置</p><h2>把复盘留在日历里</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
         <div class="setting-row"><div><strong>每周复盘时间</strong><span>浏览器打开时会检查是否到期。</span></div><input id="reminderTime" type="time" value="20:30" /></div>
         <div class="setting-row"><div><strong>网页通知</strong><span id="notificationState">尚未请求权限</span></div><button class="secondary-button" id="requestNotificationButton" value="none" type="button">开启</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="materialDialog" class="modal">
+      <form method="dialog" class="modal-card" id="materialForm">
+        <div class="modal-header"><div><p class="eyebrow">我的素材</p><h2 id="materialDialogTitle">添加一个想持续使用的内容</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="materialTitle">名称</label>
+        <input id="materialTitle" maxlength="60" placeholder="只会保存在你的设备上" required />
+        <label class="form-label" for="materialKind">类型</label>
+        <select id="materialKind">
+          <option value="listen">课程或听力</option>
+          <option value="reading">英文或其他阅读</option>
+          <option value="paper">科研文献</option>
+        </select>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>取消</button><button class="primary-button" id="saveMaterialButton" value="default" type="submit">加入素材</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="noteDialog" class="modal">
+      <form method="dialog" class="modal-card" id="noteForm">
+        <div class="modal-header"><div><p class="eyebrow" id="noteMaterialKind">学习记录</p><h2 id="noteMaterialTitle">留下一两句话</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="materialNote">今天留下什么</label>
+        <textarea id="materialNote" rows="4" maxlength="360" placeholder="一个要点、一个问题，或一句自己的话。"></textarea>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>暂不记录</button><button class="primary-button" id="saveNoteButton" value="default" type="submit">保存这句话</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="momentDialog" class="modal">
+      <form method="dialog" class="modal-card" id="momentForm">
+        <div class="modal-header"><div><p class="eyebrow">此刻记录</p><h2>留下一点正在发生的事</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="momentMaterial">和哪项内容有关</label>
+        <select id="momentMaterial"><option value="">只是随手记下</option></select>
+        <label class="form-label" for="momentText">此刻想留下什么</label>
+        <textarea id="momentText" rows="4" maxlength="360" placeholder="一个片段、一个念头，或一句自己的话。"></textarea>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>暂不记录</button><button class="primary-button" value="default" type="submit">留下这句话</button></div>
       </form>
     </dialog>
 

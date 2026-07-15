@@ -4,6 +4,17 @@ const topics = {
   reading: { label: "阅读", icon: "book-open", className: "reading" },
   writing: { label: "写作", icon: "pen-line", className: "writing" },
   learning: { label: "学习", icon: "brain-circuit", className: "learning" },
+  listening: { label: "English listening", icon: "headphones", className: "listening" },
+  philosophy: { label: "哲学", icon: "landmark", className: "philosophy" },
+  psychology: { label: "心理学", icon: "brain", className: "psychology" },
+  history: { label: "历史", icon: "scroll-text", className: "history" },
+  sifi: { label: "Sifi", icon: "rocket", className: "sifi" },
+};
+
+const materialKinds = {
+  listen: { label: "课程或听力", icon: "headphones" },
+  reading: { label: "英文或其他阅读", icon: "languages" },
+  paper: { label: "科研文献", icon: "file-text" },
 };
 
 const stages = [
@@ -15,8 +26,8 @@ const stages = [
   },
   {
     title: "留下一个有温度的细节",
-    prompt: "你提到的事里，哪一处最让你有印象？它不必深刻，具体就够了。",
-    quick: ["一段文字", "一个新问题", "一次卡住", "还说不上来"],
+    prompt: "从其中一项听读内容里，留下 1 到 2 句话吧：一个要点、一个问题，或你自己的解释都可以。",
+    quick: ["一句摘录", "一个新问题", "我的解释", "还没有笔记"],
     key: "insight",
   },
   {
@@ -36,12 +47,17 @@ const stages = [
 const defaultState = {
   focus: ["reading", "learning"],
   commitments: [],
+  materials: [],
+  moments: [],
   reviews: [],
   draft: { stage: 0, messages: [], answers: {} },
   settings: { reminderTime: "20:30", notificationPrompted: false },
 };
 
 let state = loadState();
+let activeMaterialId = null;
+let editingMaterialId = null;
+let editingNoteId = null;
 
 function loadState() {
   try {
@@ -70,6 +86,10 @@ function getWeekRange(date = new Date()) {
   const end = new Date(d); end.setDate(d.getDate() + 6);
   const fmt = (x) => `${x.getMonth() + 1} 月 ${x.getDate()} 日`;
   return `${fmt(d)} 至 ${fmt(end)}`;
+}
+
+function getTodayLabel(date = new Date()) {
+  return `${date.getMonth() + 1} 月 ${date.getDate()} 日 · ${["周日", "周一", "周二", "周三", "周四", "周五", "周六"][date.getDay()]}`;
 }
 
 function formatDate(dateString) {
@@ -112,6 +132,31 @@ function renderCommitments() {
   iconRefresh();
 }
 
+function renderMaterials() {
+  const root = $("#materialList");
+  if (!state.materials.length) {
+    root.innerHTML = '<div class="empty-state"><i data-lucide="headphones"></i><p>添加一项你想反复听、读或整理的内容。</p></div>';
+    iconRefresh();
+    return;
+  }
+  root.innerHTML = state.materials.map((material) => {
+    const kind = materialKinds[material.kind] || materialKinds.listen;
+    const latest = material.notes?.[0];
+    return `<article class="material-card">
+      <div class="material-card-top"><span class="material-type"><i data-lucide="${kind.icon}"></i>${kind.label}</span><div class="material-card-controls"><button class="edit-material" data-material-action="edit" data-id="${material.id}" type="button" title="编辑素材" aria-label="编辑素材"><i data-lucide="pencil"></i></button><button class="delete-material" data-material-action="delete" data-id="${material.id}" type="button" title="删除素材" aria-label="删除素材"><i data-lucide="x"></i></button></div></div>
+      <div class="material-title">${escapeHtml(material.title)}</div>
+      <p class="material-note">${latest ? escapeHtml(latest.text) : "还没有留下笔记。"}</p>
+      <div class="material-actions"><time>${latest ? formatShortDate(latest.date) : ""}</time><div class="note-controls">${latest ? `<button class="text-button" data-material-action="edit-note" data-id="${material.id}" data-note-id="${latest.id}" type="button">修改</button>` : ""}<button class="text-button" data-material-action="note" data-id="${material.id}" type="button">${latest ? "再记一句" : "留一句"} <i data-lucide="pen-line"></i></button></div></div>
+    </article>`;
+  }).join("");
+  iconRefresh();
+}
+
+function formatShortDate(value) {
+  const d = new Date(value);
+  return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+}
+
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]));
 }
@@ -122,8 +167,9 @@ function getProgress() {
 }
 
 function renderHome() {
-  $("#weekLabel").textContent = `本周 · ${getWeekRange()}`;
+  $("#dayLabel").textContent = getTodayLabel();
   renderFocus();
+  renderMaterials();
   renderCommitments();
   const progress = getProgress();
   const ring = $(".progress-ring");
@@ -244,6 +290,36 @@ function renderTopicSelector() {
 
 function openFocusDialog() { renderTopicSelector(); $("#focusDialog").showModal(); }
 function openActionDialog(prefill = "") { $("#actionText").value = prefill; $("#actionDialog").showModal(); $("#actionText").focus(); }
+function openMaterialDialog(id = null) {
+  editingMaterialId = id;
+  const material = id ? state.materials.find((item) => item.id === id) : null;
+  $("#materialDialogTitle").textContent = material ? "编辑这项内容" : "添加一个想持续使用的内容";
+  $("#saveMaterialButton").textContent = material ? "保存修改" : "加入素材";
+  $("#materialTitle").value = material?.title || "";
+  $("#materialKind").value = material?.kind || "listen";
+  $("#materialDialog").showModal();
+  $("#materialTitle").focus();
+}
+function openNoteDialog(id, noteId = null) {
+  const material = state.materials.find((item) => item.id === id);
+  if (!material) return;
+  activeMaterialId = id;
+  editingNoteId = noteId;
+  const note = noteId ? material.notes?.find((item) => item.id === noteId) : null;
+  $("#noteMaterialKind").textContent = materialKinds[material.kind]?.label || "学习记录";
+  $("#noteMaterialTitle").textContent = note ? `修改 · ${material.title}` : material.title;
+  $("#saveNoteButton").textContent = note ? "保存修改" : "保存这句话";
+  $("#materialNote").value = note?.text || "";
+  $("#noteDialog").showModal();
+  $("#materialNote").focus();
+}
+function openMomentDialog() {
+  const select = $("#momentMaterial");
+  select.innerHTML = '<option value="">只是随手记下</option>' + state.materials.map((item) => `<option value="${item.id}">${escapeHtml(item.title)}</option>`).join("");
+  $("#momentText").value = "";
+  $("#momentDialog").showModal();
+  $("#momentText").focus();
+}
 function openSettings() { $("#reminderTime").value = state.settings.reminderTime; updateNotificationState(); $("#settingsDialog").showModal(); }
 
 function updateNotificationState() {
@@ -303,10 +379,11 @@ function initVoice() {
 
 function bindEvents() {
   $$(".nav-item").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
-  $("#startReviewButton").addEventListener("click", () => switchView("review"));
+  $("#quickRecordButton").addEventListener("click", openMomentDialog);
   $("#continueReviewButton").addEventListener("click", () => state.reviews.length && (!state.draft.messages.length || state.draft.stage >= stages.length) ? switchView("history") : switchView("review"));
   $("#exitReviewButton").addEventListener("click", () => switchView("home"));
   $("#editFocusButton").addEventListener("click", openFocusDialog);
+  $("#addMaterialButton").addEventListener("click", () => openMaterialDialog());
   $("#quickReflectButton").addEventListener("click", () => { switchView("review"); $("#answerInput").focus(); });
   $$(".add-action").forEach((button) => button.addEventListener("click", () => openActionDialog()));
   $("#notificationButton").addEventListener("click", openSettings);
@@ -324,6 +401,14 @@ function bindEvents() {
     if (button.dataset.action === "delete") state.commitments.splice(index, 1);
     saveState(); renderCommitments();
   });
+  $("#materialList").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-material-action]"); if (!button) return;
+    const index = state.materials.findIndex((item) => item.id === button.dataset.id); if (index < 0) return;
+    if (button.dataset.materialAction === "note") openNoteDialog(button.dataset.id);
+    if (button.dataset.materialAction === "edit-note") openNoteDialog(button.dataset.id, button.dataset.noteId);
+    if (button.dataset.materialAction === "edit") openMaterialDialog(button.dataset.id);
+    if (button.dataset.materialAction === "delete") { state.materials.splice(index, 1); saveState(); renderMaterials(); }
+  });
   $("#focusForm").addEventListener("submit", (event) => {
     if (event.submitter?.value === "cancel") return;
     const selected = $$("#topicSelector input:checked").map((input) => input.value);
@@ -337,6 +422,40 @@ function bindEvents() {
     saveState(); renderCommitments();
     if (state.draft.stage >= stages.length) clearDraftAfterArchive();
     renderHome();
+  });
+  $("#materialForm").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    const title = $("#materialTitle").value.trim(); if (!title) { event.preventDefault(); return; }
+    if (editingMaterialId) {
+      const material = state.materials.find((item) => item.id === editingMaterialId);
+      if (!material) { event.preventDefault(); return; }
+      material.title = title;
+      material.kind = $("#materialKind").value;
+    } else {
+      state.materials.unshift({ id: crypto.randomUUID(), title, kind: $("#materialKind").value, notes: [] });
+    }
+    saveState(); renderMaterials();
+  });
+  $("#noteForm").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    const text = $("#materialNote").value.trim(); if (!text || !activeMaterialId) { event.preventDefault(); return; }
+    const material = state.materials.find((item) => item.id === activeMaterialId); if (!material) { event.preventDefault(); return; }
+    material.notes = material.notes || [];
+    if (editingNoteId) {
+      const note = material.notes.find((item) => item.id === editingNoteId);
+      if (!note) { event.preventDefault(); return; }
+      note.text = text;
+      note.date = new Date().toISOString();
+    } else {
+      material.notes.unshift({ id: crypto.randomUUID(), text, date: new Date().toISOString() });
+    }
+    saveState(); renderMaterials();
+  });
+  $("#momentForm").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    const text = $("#momentText").value.trim(); if (!text) { event.preventDefault(); return; }
+    state.moments.unshift({ id: crypto.randomUUID(), materialId: $("#momentMaterial").value || null, text, date: new Date().toISOString() });
+    saveState();
   });
   $("#resetButton").addEventListener("click", () => {
     if (confirm("确定清除这台设备上的所有复盘与行动记录吗？此操作无法撤销。")) { localStorage.removeItem(STORAGE_KEY); state = structuredClone(defaultState); renderHome(); renderReview(); renderHistory(); }
