@@ -90,7 +90,14 @@ h2 { font-size: 18px; letter-spacing: 0; margin-bottom: 0; }
 .progress-ring span { font-size: 22px; font-weight: 800; line-height: 1; }
 .progress-ring small { font-size: 11px; color: var(--muted); }
 .review-status-panel p { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 6px; }
+.review-entry-wrap { position: relative; width: fit-content; }
+.review-entry-tip { position: absolute; z-index: 5; left: 0; bottom: calc(100% + 7px); width: 245px; padding: 9px 11px; border: 1px solid #bad2cc; border-radius: 7px; background: #fff; box-shadow: 0 10px 22px rgba(20, 58, 69, .15); color: var(--ink); font-size: 12px; line-height: 1.55; opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity .14s ease, transform .14s ease; }
+.review-entry-wrap:hover .review-entry-tip, .review-entry-wrap:focus-within .review-entry-tip { opacity: 1; transform: translateY(0); }
 .commitments-section { margin-top: 18px; padding: 22px; }
+.commitment-heading-wrap { position: relative; width: fit-content; }
+.commitment-heading { cursor: help; }
+.commitment-tip { position: absolute; z-index: 5; top: calc(100% + 7px); left: 0; width: 255px; padding: 9px 11px; border: 1px solid #bad2cc; border-radius: 7px; background: #fff; box-shadow: 0 10px 22px rgba(20, 58, 69, .15); color: var(--ink); font-size: 12px; line-height: 1.55; opacity: 0; transform: translateY(-4px); pointer-events: none; transition: opacity .14s ease, transform .14s ease; }
+.commitment-heading-wrap:hover .commitment-tip, .commitment-heading-wrap:focus-within .commitment-tip { opacity: 1; transform: translateY(0); }
 .section-heading { margin-bottom: 17px; }
 .commitment-list { display: grid; gap: 8px; }
 .commitment-item { border: 1px solid var(--line); display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 11px 12px; border-radius: 6px; }

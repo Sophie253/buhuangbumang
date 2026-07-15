@@ -105,7 +105,10 @@
               <div class="status-topline"><span>本周复盘</span><span class="status-pill" id="reviewStatus">待开始</span></div>
               <div class="progress-ring" aria-hidden="true"><span id="progressNumber">0</span><small>%</small></div>
               <p id="reviewStatusText">留出 10 分钟，和自己说说这周。</p>
-              <button class="text-button" id="continueReviewButton" type="button">进入对话 <i data-lucide="arrow-up-right"></i></button>
+              <div class="review-entry-wrap">
+                <button class="text-button" id="continueReviewButton" type="button">进入对话 <i data-lucide="arrow-up-right"></i></button>
+                <div class="review-entry-tip" role="tooltip">不追求连续打卡，把这一周过明白，已经很重要。</div>
+              </div>
             </section>
           </div>
 
@@ -113,7 +116,10 @@
             <div class="section-heading">
               <div>
                 <p class="eyebrow">已承诺的小行动</p>
-                <h2>只保留现在能回应的事</h2>
+                <div class="commitment-heading-wrap">
+                  <h2 class="commitment-heading" tabindex="0" aria-describedby="commitmentExamples">只保留现在能回应的事</h2>
+                  <div class="commitment-tip" id="commitmentExamples" role="tooltip">早睡了吗，早起了吗，喝水了吗，运动了吗，行动了吗。</div>
+                </div>
               </div>
               <button class="icon-button add-action" type="button" title="添加行动" aria-label="添加行动"><i data-lucide="plus"></i></button>
             </div>
