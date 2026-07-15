@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#143a45" />
+    <meta name="description" content="一个坚定但不批判的个人成长督导。" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>不慌不忙 | 个人成长督导</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">不</span>
+          <div>
+            <strong>不慌不忙</strong>
+            <span>个人成长督导</span>
+          </div>
+        </div>
+
+        <nav class="nav" aria-label="主导航">
+          <button class="nav-item active" data-view="home" type="button">
+            <i data-lucide="house"></i><span>本周</span>
+          </button>
+          <button class="nav-item" data-view="review" type="button">
+            <i data-lucide="messages-square"></i><span>复盘对话</span>
+          </button>
+          <button class="nav-item" data-view="history" type="button">
+            <i data-lucide="book-open-check"></i><span>复盘档案</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <button class="quiet-button" id="notificationButton" type="button" title="设置提醒">
+            <i data-lucide="bell-ring"></i><span>提醒设置</span>
+          </button>
+          <button class="quiet-button" id="resetButton" type="button" title="清除本机数据">
+            <i data-lucide="rotate-ccw"></i><span>重新开始</span>
+          </button>
+          <p class="local-note"><i data-lucide="hard-drive"></i> 数据仅保存在此设备</p>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="mobile-header">
+          <div class="brand-mini"><span class="brand-mark">不</span><strong>不慌不忙</strong></div>
+          <button class="icon-button" id="mobileSettings" type="button" title="提醒设置" aria-label="提醒设置"><i data-lucide="bell-ring"></i></button>
+        </header>
+
+        <section class="view active" id="homeView">
+          <div class="page-intro">
+            <div>
+              <p class="eyebrow" id="weekLabel">本周 · 7 月 13 日至 7 月 19 日</p>
+              <h1>先看真实发生的事。</h1>
+              <p class="subcopy">不追求连续打卡。把这一周过明白，已经很重要。</p>
+            </div>
+            <button class="primary-button" id="startReviewButton" type="button">
+              <i data-lucide="arrow-right"></i><span>开始本周复盘</span>
+            </button>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="focus-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="eyebrow">这周的重心</p>
+                  <h2>只选一到两个方向</h2>
+                </div>
+                <button class="icon-button" id="editFocusButton" type="button" title="调整本周重心" aria-label="调整本周重心"><i data-lucide="sliders-horizontal"></i></button>
+              </div>
+              <div class="topic-list" id="focusTopics"></div>
+              <p class="panel-hint">更多目标可以留在档案里，但不要同时占用今天。</p>
+            </section>
+
+            <section class="review-status-panel">
+              <div class="status-topline"><span>本周复盘</span><span class="status-pill" id="reviewStatus">待开始</span></div>
+              <div class="progress-ring" aria-hidden="true"><span id="progressNumber">0</span><small>%</small></div>
+              <p id="reviewStatusText">留出 10 分钟，和自己说说这周。</p>
+              <button class="text-button" id="continueReviewButton" type="button">进入对话 <i data-lucide="arrow-up-right"></i></button>
+            </section>
+          </div>
+
+          <section class="commitments-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">已承诺的小行动</p>
+                <h2>只保留现在能回应的事</h2>
+              </div>
+              <button class="icon-button add-action" type="button" title="添加行动" aria-label="添加行动"><i data-lucide="plus"></i></button>
+            </div>
+            <div class="commitment-list" id="commitmentList"></div>
+          </section>
+
+          <section class="reflection-prompt">
+            <div class="prompt-icon"><i data-lucide="sparkles"></i></div>
+            <div>
+              <p class="eyebrow">随时问自己</p>
+              <h2>这件事，真的推动我向前了吗？</h2>
+            </div>
+            <button class="text-button" id="quickReflectButton" type="button">写一句 <i data-lucide="pen-line"></i></button>
+          </section>
+        </section>
+
+        <section class="view" id="reviewView">
+          <div class="review-layout">
+            <section class="conversation-panel">
+              <div class="conversation-header">
+                <div>
+                  <p class="eyebrow">本周复盘</p>
+                  <h1 id="reviewTitle">先从事实开始</h1>
+                </div>
+                <button class="icon-button" id="exitReviewButton" type="button" title="返回本周" aria-label="返回本周"><i data-lucide="x"></i></button>
+              </div>
+              <div class="conversation" id="conversation" aria-live="polite"></div>
+              <div class="quick-replies" id="quickReplies"></div>
+              <form class="composer" id="composer">
+                <button class="icon-button voice" id="voiceButton" type="button" title="语音输入" aria-label="语音输入"><i data-lucide="mic"></i></button>
+                <label class="sr-only" for="answerInput">回答</label>
+                <textarea id="answerInput" rows="1" placeholder="写下真实的回答，不需要写得漂亮。"></textarea>
+                <button class="send-button" type="submit" title="发送回答" aria-label="发送回答"><i data-lucide="arrow-up"></i></button>
+              </form>
+            </section>
+
+            <aside class="review-side">
+              <div class="side-card">
+                <p class="eyebrow">对话原则</p>
+                <ul class="principle-list">
+                  <li><i data-lucide="check"></i> 看事实，不演示努力</li>
+                  <li><i data-lucide="check"></i> 允许没有完成</li>
+                  <li><i data-lucide="check"></i> 不留下模糊承诺</li>
+                </ul>
+              </div>
+              <div class="side-card summary-card" id="liveSummary">
+                <p class="eyebrow">本轮正在形成</p>
+                <div class="summary-row"><span>发生了什么</span><strong id="summaryFacts">等待你的回答</strong></div>
+                <div class="summary-row"><span>一个洞见</span><strong id="summaryInsight">尚未记录</strong></div>
+                <div class="summary-row"><span>下一步</span><strong id="summaryNext">尚未决定</strong></div>
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="view" id="historyView">
+          <div class="page-intro compact">
+            <div>
+              <p class="eyebrow">复盘档案</p>
+              <h1>把经历变成可回看的线索。</h1>
+            </div>
+          </div>
+          <div class="history-list" id="historyList"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="focusDialog" class="modal">
+      <form method="dialog" class="modal-card" id="focusForm">
+        <div class="modal-header"><div><p class="eyebrow">本周重心</p><h2>给注意力留出边界</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <p class="modal-copy">最多选择两个方向。暂时没有选中的目标，不等于放弃。</p>
+        <div class="selection-grid" id="topicSelector"></div>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit">取消</button><button class="primary-button" id="saveFocusButton" value="default" type="submit">保存重心</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="actionDialog" class="modal">
+      <form method="dialog" class="modal-card" id="actionForm">
+        <div class="modal-header"><div><p class="eyebrow">下一步</p><h2>把行动缩小到能开始</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="actionText">我准备做什么</label>
+        <input id="actionText" maxlength="80" placeholder="例如：周三早上读一篇文献的摘要，10 分钟" required />
+        <label class="form-label" for="actionTime">准备在什么时候回应它</label>
+        <input id="actionTime" type="datetime-local" />
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit">取消</button><button class="primary-button" value="default" type="submit">加入本周</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="settingsDialog" class="modal">
+      <form method="dialog" class="modal-card settings-card">
+        <div class="modal-header"><div><p class="eyebrow">提醒设置</p><h2>把复盘留在日历里</h2></div><button class="icon-button" value="cancel" type="submit" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="setting-row"><div><strong>每周复盘时间</strong><span>浏览器打开时会检查是否到期。</span></div><input id="reminderTime" type="time" value="20:30" /></div>
+        <div class="setting-row"><div><strong>网页通知</strong><span id="notificationState">尚未请求权限</span></div><button class="secondary-button" id="requestNotificationButton" value="none" type="button">开启</button></div>
+      </form>
+    </dialog>
+
+    <template id="emptyCommitmentTemplate">
+      <div class="empty-state"><i data-lucide="circle-dashed"></i><p>本周还没有承诺。复盘后只留一件足够小的下一步。</p></div>
+    </template>
+
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
