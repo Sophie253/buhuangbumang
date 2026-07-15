@@ -1,4 +1,4 @@
-const CACHE = "buhuangbumang-v14";
+const CACHE = "buhuangbumang-v16";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

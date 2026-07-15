@@ -17,6 +17,42 @@ const materialKinds = {
   paper: { label: "科研文献", icon: "file-text" },
 };
 
+const microCategories = {
+  self: { label: "身体与自己", icon: "sparkles" },
+  relationship: { label: "关系与善意", icon: "heart" },
+  nature: { label: "动物与自然", icon: "leaf" },
+  play: { label: "电影音乐与玩乐", icon: "music-2" },
+  life: { label: "空间与生活", icon: "coffee" },
+};
+
+const builtInMicroActions = [
+  { id: "self-water", category: "self", text: "喝一杯水。" },
+  { id: "self-stretch", category: "self", text: "伸展 30 秒。" },
+  { id: "self-breathe", category: "self", text: "到窗边深呼吸一次。" },
+  { id: "self-walk", category: "self", text: "走 5 分钟。" },
+  { id: "self-sleep", category: "self", text: "提前给睡觉留出十分钟。" },
+  { id: "relationship-hug", category: "relationship", text: "拥抱一下家人。" },
+  { id: "relationship-hello", category: "relationship", text: "认真问候一个人。" },
+  { id: "relationship-thanks", category: "relationship", text: "向某个人说一声谢谢。" },
+  { id: "relationship-message", category: "relationship", text: "给在意的人发一句消息。" },
+  { id: "nature-cat", category: "nature", text: "撸一会儿猫。" },
+  { id: "nature-dog", category: "nature", text: "遛一会儿狗。" },
+  { id: "nature-bird", category: "nature", text: "逗一会儿鸟。" },
+  { id: "nature-plant", category: "nature", text: "给植物浇一点水。" },
+  { id: "nature-sky", category: "nature", text: "看看今天的天空。" },
+  { id: "nature-tree", category: "nature", text: "观察一棵树或一朵花。" },
+  { id: "play-song", category: "play", text: "听一首你想听的歌。", media: true },
+  { id: "play-film", category: "play", text: "看一段电影，或看一部电影。", media: true },
+  { id: "play-poem", category: "play", text: "读一首诗。" },
+  { id: "play-dance", category: "play", text: "跳一支歌的时间。" },
+  { id: "play-photo", category: "play", text: "翻一张旧照片。" },
+  { id: "play-light", category: "play", text: "拍下一处喜欢的光。" },
+  { id: "life-drink", category: "life", text: "泡一杯喜欢的饮品。" },
+  { id: "life-tidy", category: "life", text: "收好一件物品。" },
+  { id: "life-window", category: "life", text: "打开窗。" },
+  { id: "life-desk", category: "life", text: "整理桌面上一小块地方。" },
+];
+
 const stages = [
   {
     title: "先从事实开始",
@@ -49,6 +85,7 @@ const defaultState = {
   commitments: [],
   materials: [],
   moments: [],
+  micro: { deck: [], currentId: null, currentDone: false, customActions: [] },
   reviews: [],
   draft: { stage: 0, messages: [], answers: {} },
   settings: { reminderTime: "20:30", notificationPrompted: false },
@@ -58,11 +95,18 @@ let state = loadState();
 let activeMaterialId = null;
 let editingMaterialId = null;
 let editingNoteId = null;
+let activeMicroMomentId = null;
+let editingMicroActionId = null;
 
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return { ...structuredClone(defaultState), ...stored, settings: { ...defaultState.settings, ...(stored?.settings || {}) } };
+    return {
+      ...structuredClone(defaultState),
+      ...stored,
+      settings: { ...defaultState.settings, ...(stored?.settings || {}) },
+      micro: { ...defaultState.micro, ...(stored?.micro || {}), customActions: stored?.micro?.customActions || [] },
+    };
   } catch {
     return structuredClone(defaultState);
   }
@@ -152,6 +196,114 @@ function renderMaterials() {
   iconRefresh();
 }
 
+function allMicroActions() {
+  return [...builtInMicroActions, ...state.micro.customActions];
+}
+
+function findMicroAction(id) {
+  return allMicroActions().find((action) => action.id === id);
+}
+
+function refillMicroDeck() {
+  state.micro.deck = allMicroActions().map((action) => action.id).sort(() => Math.random() - 0.5);
+}
+
+function drawMicroAction() {
+  const available = allMicroActions();
+  if (!available.length) return;
+  state.micro.deck = state.micro.deck.filter((id) => available.some((action) => action.id === id));
+  if (!state.micro.deck.length) refillMicroDeck();
+  if (state.micro.deck.length > 1 && state.micro.deck[0] === state.micro.currentId) state.micro.deck.push(state.micro.deck.shift());
+  state.micro.currentId = state.micro.deck.shift();
+  state.micro.currentDone = false;
+  activeMicroMomentId = null;
+  saveState();
+  renderMicroGlow();
+}
+
+function renderMicroGlow() {
+  const root = $("#microGlowCard");
+  const action = findMicroAction(state.micro.currentId);
+  if (!action) {
+    root.classList.remove("is-done");
+    root.innerHTML = `<p class="micro-glow-kicker"><i data-lucide="sparkles"></i>今天不需要完成什么</p><p class="micro-glow-text">抽一张，看看哪件小事现在刚好适合你。</p><div class="micro-glow-controls"><button class="micro-draw-button" data-micro-action="draw" type="button"><i data-lucide="shuffle"></i>抽一张</button></div>`;
+    iconRefresh();
+    return;
+  }
+  const category = microCategories[action.category] || microCategories.self;
+  if (state.micro.currentDone) {
+    root.classList.add("is-done");
+    root.innerHTML = `<p class="micro-glow-kicker"><i data-lucide="check-circle-2"></i>今天留下了一点什么</p><p class="micro-glow-text">${escapeHtml(action.text)}</p><p class="micro-glow-subtext">不需要再做更多了。想玩的话，再抽一张。</p><div class="micro-glow-controls"><button class="micro-draw-button" data-micro-action="draw" type="button"><i data-lucide="shuffle"></i>再抽一张</button></div>`;
+  } else {
+    root.classList.remove("is-done");
+    root.innerHTML = `<p class="micro-glow-kicker"><i data-lucide="${category.icon}"></i>${category.label}</p><p class="micro-glow-text">${escapeHtml(action.text)}</p><p class="micro-glow-subtext">做了就算，换一张也没关系。</p><div class="micro-glow-controls"><button class="micro-draw-button" data-micro-action="done" type="button"><i data-lucide="check"></i>做过了</button><button class="micro-swap-button" data-micro-action="swap" type="button"><i data-lucide="refresh-cw"></i>换一张</button></div>`;
+  }
+  iconRefresh();
+}
+
+function completeMicroAction() {
+  const action = findMicroAction(state.micro.currentId);
+  if (!action || state.micro.currentDone) return;
+  const moment = {
+    id: crypto.randomUUID(),
+    kind: "micro",
+    microActionId: action.id,
+    actionText: action.text,
+    detail: "",
+    reflection: "",
+    text: action.text,
+    date: new Date().toISOString(),
+  };
+  state.moments.unshift(moment);
+  state.micro.currentDone = true;
+  activeMicroMomentId = moment.id;
+  saveState();
+  renderMicroGlow();
+  openMicroMomentDialog(action, moment);
+}
+
+function openMicroMomentDialog(action, moment) {
+  const category = microCategories[action.category] || microCategories.self;
+  $("#microMomentCategory").textContent = category.label;
+  $("#microMomentTitle").textContent = action.text;
+  $("#microMomentDetail").value = moment?.detail || "";
+  $("#microMomentReflection").value = moment?.reflection || "";
+  $("#microMomentDetail").previousElementSibling.textContent = action.media ? "片名或歌名（可选）" : "相关对象或名称（可选）";
+  $("#microMomentDialog").showModal();
+  $("#microMomentReflection").focus();
+}
+
+function renderMicroLibrary() {
+  const root = $("#microLibraryList");
+  if (!state.micro.customActions.length) {
+    root.innerHTML = '<div class="empty-state"><i data-lucide="sparkles"></i><p>还没有自定义微光。可以加一件你自己喜欢的小事。</p></div>';
+    iconRefresh();
+    return;
+  }
+  root.innerHTML = state.micro.customActions.map((action) => {
+    const category = microCategories[action.category] || microCategories.self;
+    return `<div class="micro-library-item"><div><p>${escapeHtml(action.text)}</p><small>${category.label}</small></div><div class="micro-library-controls"><button type="button" data-library-action="edit" data-id="${action.id}" title="编辑"><i data-lucide="pencil"></i></button><button type="button" data-library-action="delete" data-id="${action.id}" title="删除"><i data-lucide="x"></i></button></div></div>`;
+  }).join("");
+  iconRefresh();
+}
+
+function openMicroLibrary() {
+  renderMicroLibrary();
+  $("#microLibraryDialog").showModal();
+}
+
+function openMicroActionDialog(id = null) {
+  editingMicroActionId = id;
+  const action = id ? state.micro.customActions.find((item) => item.id === id) : null;
+  if ($("#microLibraryDialog").open) $("#microLibraryDialog").close();
+  $("#microActionDialogTitle").textContent = action ? "编辑这张小事卡" : "添加一张小事卡";
+  $("#saveMicroActionButton").textContent = action ? "保存修改" : "加入卡组";
+  $("#microActionText").value = action?.text || "";
+  $("#microActionCategory").value = action?.category || "self";
+  $("#microActionDialog").showModal();
+  $("#microActionText").focus();
+}
+
 function formatShortDate(value) {
   const d = new Date(value);
   return `${d.getMonth() + 1} 月 ${d.getDate()} 日`;
@@ -169,6 +321,7 @@ function getProgress() {
 function renderHome() {
   $("#dayLabel").textContent = getTodayLabel();
   renderFocus();
+  renderMicroGlow();
   renderMaterials();
   renderCommitments();
   const progress = getProgress();
@@ -184,7 +337,7 @@ function renderHome() {
 
 function reviewMessages() {
   if (!state.draft.messages.length) {
-    state.draft.messages = [{ role: "coach", text: "这不是考核。我们只是把这一周真实发生的事，重新放回你手里。" }, { role: "coach", text: stages[0].prompt }];
+    state.draft.messages = [{ role: "coach", text: "没有标准答案，聊聊这周发生了什么。" }, { role: "coach", text: stages[0].prompt }];
     saveState();
   }
   return state.draft.messages;
@@ -198,7 +351,7 @@ function renderReview() {
   conversation.innerHTML = messages.map((m) => `
     <div class="message ${m.role === "user" ? "user" : "coach"}">
       <div class="avatar">${m.role === "user" ? "你" : "回"}</div>
-      <div class="bubble">${escapeHtml(m.text)}<small>${m.role === "user" ? "你的回答" : "成长督导"}</small></div>
+      <div class="bubble">${escapeHtml(m.text)}<small>${m.role === "user" ? "你的回答" : "不慌不忙"}</small></div>
     </div>`).join("");
   conversation.scrollTop = conversation.scrollHeight;
   $("#quickReplies").innerHTML = stage < stages.length ? stages[stage].quick.map((reply) => `<button class="quick-reply" type="button">${reply}</button>`).join("") : "";
@@ -380,6 +533,7 @@ function initVoice() {
 function bindEvents() {
   $$(".nav-item").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
   $("#quickRecordButton").addEventListener("click", openMomentDialog);
+  $("#manageMicroActionsButton").addEventListener("click", openMicroLibrary);
   $("#continueReviewButton").addEventListener("click", () => state.reviews.length && (!state.draft.messages.length || state.draft.stage >= stages.length) ? switchView("history") : switchView("review"));
   $("#exitReviewButton").addEventListener("click", () => switchView("home"));
   $("#editFocusButton").addEventListener("click", openFocusDialog);
@@ -400,6 +554,22 @@ function bindEvents() {
     if (button.dataset.action === "toggle") state.commitments[index].done = !state.commitments[index].done;
     if (button.dataset.action === "delete") state.commitments.splice(index, 1);
     saveState(); renderCommitments();
+  });
+  $("#microGlowCard").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-micro-action]"); if (!button) return;
+    if (button.dataset.microAction === "draw" || button.dataset.microAction === "swap") drawMicroAction();
+    if (button.dataset.microAction === "done") completeMicroAction();
+  });
+  $("#addCustomMicroButton").addEventListener("click", () => openMicroActionDialog());
+  $("#microLibraryList").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-library-action]"); if (!button) return;
+    const index = state.micro.customActions.findIndex((item) => item.id === button.dataset.id); if (index < 0) return;
+    if (button.dataset.libraryAction === "edit") openMicroActionDialog(button.dataset.id);
+    if (button.dataset.libraryAction === "delete") {
+      state.micro.customActions.splice(index, 1);
+      if (state.micro.currentId === button.dataset.id) { state.micro.currentId = null; state.micro.currentDone = false; }
+      saveState(); renderMicroLibrary(); renderMicroGlow();
+    }
   });
   $("#materialList").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-material-action]"); if (!button) return;
@@ -456,6 +626,29 @@ function bindEvents() {
     const text = $("#momentText").value.trim(); if (!text) { event.preventDefault(); return; }
     state.moments.unshift({ id: crypto.randomUUID(), materialId: $("#momentMaterial").value || null, text, date: new Date().toISOString() });
     saveState();
+  });
+  $("#microMomentForm").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    const moment = state.moments.find((item) => item.id === activeMicroMomentId);
+    if (!moment) return;
+    moment.detail = $("#microMomentDetail").value.trim();
+    moment.reflection = $("#microMomentReflection").value.trim();
+    moment.text = moment.reflection || moment.actionText;
+    saveState();
+  });
+  $("#microActionForm").addEventListener("submit", (event) => {
+    if (event.submitter?.value === "cancel") return;
+    const text = $("#microActionText").value.trim(); if (!text) { event.preventDefault(); return; }
+    if (editingMicroActionId) {
+      const action = state.micro.customActions.find((item) => item.id === editingMicroActionId);
+      if (!action) { event.preventDefault(); return; }
+      action.text = text;
+      action.category = $("#microActionCategory").value;
+    } else {
+      state.micro.customActions.unshift({ id: crypto.randomUUID(), text, category: $("#microActionCategory").value, custom: true });
+      state.micro.deck = [];
+    }
+    saveState(); renderMicroGlow();
   });
   $("#resetButton").addEventListener("click", () => {
     if (confirm("确定清除这台设备上的所有复盘与行动记录吗？此操作无法撤销。")) { localStorage.removeItem(STORAGE_KEY); state = structuredClone(defaultState); renderHome(); renderReview(); renderHistory(); }

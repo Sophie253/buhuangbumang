@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#143a45" />
-    <meta name="description" content="一个坚定但不批判的个人成长督导。" />
+    <meta name="description" content="不慌不忙，成长不是作业。" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="stylesheet" href="styles.css" />
-    <title>不慌不忙 | 个人成长督导</title>
+    <title>不慌不忙 | 成长不是作业</title>
   </head>
   <body>
     <div class="app-shell">
@@ -17,7 +17,7 @@
           <span class="brand-mark" aria-hidden="true">不</span>
           <div>
             <strong>不慌不忙</strong>
-            <span>个人成长督导</span>
+            <span>成长不是作业</span>
           </div>
         </div>
 
@@ -29,7 +29,7 @@
             <i data-lucide="messages-square"></i><span>复盘对话</span>
           </button>
           <button class="nav-item" data-view="history" type="button">
-            <i data-lucide="book-open-check"></i><span>复盘档案</span>
+            <i data-lucide="book-open-check"></i><span>回忆收藏夹</span>
           </button>
         </nav>
 
@@ -74,6 +74,17 @@
             </div>
           </div>
 
+          <section class="micro-glow-section">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">今日微光</p>
+                <h2>抽一张小事卡</h2>
+              </div>
+              <button class="icon-button" id="manageMicroActionsButton" type="button" title="管理我的微光" aria-label="管理我的微光"><i data-lucide="sliders-horizontal"></i></button>
+            </div>
+            <div class="micro-glow-card" id="microGlowCard"></div>
+          </section>
+
           <section class="materials-section featured-materials">
             <div class="section-heading">
               <div class="micro-start-wrap action-hover-wrap">
@@ -92,17 +103,17 @@
             <section class="focus-panel">
               <div class="panel-heading">
                 <div>
-                  <p class="eyebrow">这周的重心</p>
+                  <p class="eyebrow">这周想多靠近什么</p>
                   <h2>只选一到两个方向</h2>
                 </div>
-                <button class="icon-button" id="editFocusButton" type="button" title="调整本周重心" aria-label="调整本周重心"><i data-lucide="sliders-horizontal"></i></button>
+                <button class="icon-button" id="editFocusButton" type="button" title="调整这周想多靠近什么" aria-label="调整这周想多靠近什么"><i data-lucide="sliders-horizontal"></i></button>
               </div>
               <div class="topic-list" id="focusTopics"></div>
               <p class="panel-hint">更多目标可以留在档案里，但不要同时占用今天。</p>
             </section>
 
             <section class="review-status-panel">
-              <div class="status-topline"><span>本周复盘</span><span class="status-pill" id="reviewStatus">待开始</span></div>
+              <div class="status-topline"><span>这周玩得怎么样</span><span class="status-pill" id="reviewStatus">待开始</span></div>
               <div class="progress-ring" aria-hidden="true"><span id="progressNumber">0</span><small>%</small></div>
               <p id="reviewStatusText">留出 10 分钟，和自己说说这周。</p>
               <div class="review-entry-wrap">
@@ -115,7 +126,7 @@
           <section class="commitments-section">
             <div class="section-heading">
               <div>
-                <p class="eyebrow">已承诺的小行动</p>
+                <p class="eyebrow">今天想碰一碰的事</p>
                 <div class="commitment-heading-wrap">
                   <h2 class="commitment-heading" tabindex="0" aria-describedby="commitmentExamples">只保留现在能回应的事</h2>
                   <div class="commitment-tip" id="commitmentExamples" role="tooltip">早睡了吗，早起了吗，喝水了吗，运动了吗，行动了吗。</div>
@@ -141,7 +152,7 @@
             <section class="conversation-panel">
               <div class="conversation-header">
                 <div>
-                  <p class="eyebrow">本周复盘</p>
+                  <p class="eyebrow">这周玩得怎么样</p>
                   <h1 id="reviewTitle">先从事实开始</h1>
                 </div>
                 <button class="icon-button" id="exitReviewButton" type="button" title="返回本周" aria-label="返回本周"><i data-lucide="x"></i></button>
@@ -178,7 +189,7 @@
         <section class="view" id="historyView">
           <div class="page-intro compact">
             <div>
-              <p class="eyebrow">复盘档案</p>
+              <p class="eyebrow">回忆收藏夹</p>
               <h1>把经历变成可回看的线索。</h1>
             </div>
           </div>
@@ -189,7 +200,7 @@
 
     <dialog id="focusDialog" class="modal">
       <form method="dialog" class="modal-card" id="focusForm">
-        <div class="modal-header"><div><p class="eyebrow">本周重心</p><h2>给注意力留出边界</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="modal-header"><div><p class="eyebrow">这周想多靠近什么</p><h2>给注意力留出边界</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
         <p class="modal-copy">最多选择两个方向。暂时没有选中的目标，不等于放弃。</p>
         <div class="selection-grid" id="topicSelector"></div>
         <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>取消</button><button class="primary-button" id="saveFocusButton" value="default" type="submit">保存重心</button></div>
@@ -247,6 +258,42 @@
         <label class="form-label" for="momentText">此刻想留下什么</label>
         <textarea id="momentText" rows="4" maxlength="360" placeholder="一个片段、一个念头，或一句自己的话。"></textarea>
         <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>暂不记录</button><button class="primary-button" value="default" type="submit">留下这句话</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="microMomentDialog" class="modal">
+      <form method="dialog" class="modal-card" id="microMomentForm">
+        <div class="modal-header"><div><p class="eyebrow" id="microMomentCategory">今日微光</p><h2 id="microMomentTitle">今天留下了一点什么</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="microMomentDetail">片名、歌名或对象（可选）</label>
+        <input id="microMomentDetail" maxlength="80" placeholder="不填也完全没关系" />
+        <label class="form-label" for="microMomentReflection">想留下一句什么</label>
+        <textarea id="microMomentReflection" rows="4" maxlength="360" placeholder="一个感受、一个画面，或什么也不写。"></textarea>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>就这样</button><button class="primary-button" value="default" type="submit">留下一句</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="microLibraryDialog" class="modal">
+      <form method="dialog" class="modal-card" id="microLibraryForm">
+        <div class="modal-header"><div><p class="eyebrow">我的微光</p><h2>自己加一点想做的小事</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <div class="micro-library-list" id="microLibraryList"></div>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>关闭</button><button class="primary-button" id="addCustomMicroButton" value="none" type="button">添加一张</button></div>
+      </form>
+    </dialog>
+
+    <dialog id="microActionDialog" class="modal">
+      <form method="dialog" class="modal-card" id="microActionForm">
+        <div class="modal-header"><div><p class="eyebrow">我的微光</p><h2 id="microActionDialogTitle">添加一张小事卡</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <label class="form-label" for="microActionText">这张卡想邀请我做什么</label>
+        <input id="microActionText" maxlength="80" placeholder="例如：给阳台上的植物浇一点水" required />
+        <label class="form-label" for="microActionCategory">类别</label>
+        <select id="microActionCategory">
+          <option value="self">身体与自己</option>
+          <option value="relationship">关系与善意</option>
+          <option value="nature">动物与自然</option>
+          <option value="play">电影音乐与玩乐</option>
+          <option value="life">空间与生活</option>
+        </select>
+        <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>取消</button><button class="primary-button" id="saveMicroActionButton" value="default" type="submit">加入卡组</button></div>
       </form>
     </dialog>
 
