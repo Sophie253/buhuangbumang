@@ -1,4 +1,6 @@
 const STORAGE_KEY = "huiwang-growth-coach-v1";
+const SESSION_KEY = "buhuangbumang-supabase-session-v1";
+const SYNC_CONFIG = window.BUHUANGBUMANG_SYNC_CONFIG || {};
 
 const topics = {
   reading: { label: "阅读", icon: "book-open", className: "reading" },
@@ -89,9 +91,14 @@ const defaultState = {
   reviews: [],
   draft: { stage: 0, messages: [], answers: {} },
   settings: { reminderTime: "20:30", notificationPrompted: false },
+  syncMeta: { updatedAt: null },
 };
 
 let state = loadState();
+let cloudSession = loadCloudSession();
+let cloudUser = null;
+let syncTimer = null;
+let syncInFlight = false;
 let activeMaterialId = null;
 let editingMaterialId = null;
 let editingNoteId = null;
@@ -106,6 +113,7 @@ function loadState() {
       ...stored,
       settings: { ...defaultState.settings, ...(stored?.settings || {}) },
       micro: { ...defaultState.micro, ...(stored?.micro || {}), customActions: stored?.micro?.customActions || [] },
+      syncMeta: { ...defaultState.syncMeta, ...(stored?.syncMeta || {}) },
     };
   } catch {
     return structuredClone(defaultState);
@@ -113,7 +121,224 @@ function loadState() {
 }
 
 function saveState() {
+  state.syncMeta = { ...(state.syncMeta || {}), updatedAt: new Date().toISOString() };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  queueCloudSync();
+}
+
+function isSyncConfigured() {
+  return /^https:\/\/[^\s]+\.supabase\.co\/?$/.test(SYNC_CONFIG.url || "") && Boolean(SYNC_CONFIG.anonKey);
+}
+
+function loadCloudSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+
+function saveCloudSession(session) {
+  cloudSession = session;
+  if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  else localStorage.removeItem(SESSION_KEY);
+}
+
+function supabaseUrl(path) {
+  return `${SYNC_CONFIG.url.replace(/\/$/, "")}${path}`;
+}
+
+async function supabaseRequest(path, options = {}) {
+  if (!isSyncConfigured()) throw new Error("同步服务尚未配置");
+  const headers = { apikey: SYNC_CONFIG.anonKey, ...(options.headers || {}) };
+  if (cloudSession?.access_token) headers.Authorization = `Bearer ${cloudSession.access_token}`;
+  const response = await fetch(supabaseUrl(path), { ...options, headers });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(detail.msg || detail.message || "同步暂时没有成功");
+  }
+  return response.status === 204 ? null : response.json();
+}
+
+function sessionExpiresSoon() {
+  return !cloudSession?.expires_at || Number(cloudSession.expires_at) * 1000 < Date.now() + 60_000;
+}
+
+async function refreshCloudSession() {
+  if (!cloudSession?.refresh_token || !sessionExpiresSoon()) return cloudSession;
+  const response = await fetch(supabaseUrl("/auth/v1/token?grant_type=refresh_token"), {
+    method: "POST",
+    headers: { apikey: SYNC_CONFIG.anonKey, "Content-Type": "application/json" },
+    body: JSON.stringify({ refresh_token: cloudSession.refresh_token }),
+  });
+  if (!response.ok) throw new Error("登录已过期，请重新打开登录链接");
+  saveCloudSession(await response.json());
+  return cloudSession;
+}
+
+async function getCloudUser() {
+  if (!cloudSession?.access_token) return null;
+  await refreshCloudSession();
+  const user = await supabaseRequest("/auth/v1/user");
+  cloudUser = user;
+  return user;
+}
+
+function mergeById(remoteItems = [], localItems = []) {
+  const merged = new Map();
+  [...remoteItems, ...localItems].forEach((item) => {
+    if (!item?.id) return;
+    const existing = merged.get(item.id);
+    merged.set(item.id, existing ? { ...existing, ...item } : item);
+  });
+  return [...merged.values()];
+}
+
+function mergeMaterials(remoteItems = [], localItems = []) {
+  const combined = mergeById(remoteItems, localItems);
+  return combined.map((material) => {
+    const remote = remoteItems.find((item) => item.id === material.id);
+    const local = localItems.find((item) => item.id === material.id);
+    return { ...material, notes: mergeById(remote?.notes || [], local?.notes || []) };
+  });
+}
+
+function mergeCloudState(remoteState, localState) {
+  const remoteNewer = new Date(remoteState?.syncMeta?.updatedAt || 0) >= new Date(localState?.syncMeta?.updatedAt || 0);
+  const newest = remoteNewer ? remoteState : localState;
+  return {
+    ...structuredClone(defaultState),
+    ...newest,
+    commitments: mergeById(remoteState?.commitments, localState?.commitments),
+    materials: mergeMaterials(remoteState?.materials, localState?.materials),
+    moments: mergeById(remoteState?.moments, localState?.moments),
+    reviews: mergeById(remoteState?.reviews, localState?.reviews),
+    micro: {
+      ...defaultState.micro,
+      ...(newest?.micro || {}),
+      customActions: mergeById(remoteState?.micro?.customActions, localState?.micro?.customActions),
+    },
+    settings: { ...defaultState.settings, ...(newest?.settings || {}) },
+    syncMeta: { updatedAt: new Date().toISOString() },
+  };
+}
+
+function refreshAll() {
+  renderHome();
+  renderReview();
+  renderHistory();
+  renderSyncStatus();
+}
+
+function queueCloudSync() {
+  if (!isSyncConfigured() || !cloudSession?.access_token || syncInFlight) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncCloudState(), 700);
+}
+
+async function syncCloudState({ pullFirst = false } = {}) {
+  if (!isSyncConfigured() || !cloudSession?.access_token || syncInFlight) return;
+  syncInFlight = true;
+  renderSyncStatus("正在同步");
+  try {
+    await refreshCloudSession();
+    const user = cloudUser || await getCloudUser();
+    if (pullFirst) {
+      const rows = await supabaseRequest(`/rest/v1/app_states?select=data,updated_at&user_id=eq.${encodeURIComponent(user.id)}`);
+      if (rows[0]?.data) {
+        state = mergeCloudState(rows[0].data, state);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+    }
+    await supabaseRequest("/rest/v1/app_states?on_conflict=user_id", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+      body: JSON.stringify({ user_id: user.id, data: state, updated_at: new Date().toISOString() }),
+    });
+    renderSyncStatus("已同步");
+    refreshAll();
+  } catch (error) {
+    renderSyncStatus(error.message || "同步暂时没有成功", true);
+  } finally {
+    syncInFlight = false;
+  }
+}
+
+function parseMagicLinkSession() {
+  const hash = new URLSearchParams(location.hash.slice(1));
+  if (!hash.get("access_token")) return false;
+  saveCloudSession({
+    access_token: hash.get("access_token"),
+    refresh_token: hash.get("refresh_token"),
+    expires_at: hash.get("expires_at") || String(Math.floor(Date.now() / 1000) + Number(hash.get("expires_in") || 3600)),
+  });
+  history.replaceState({}, document.title, `${location.pathname}${location.search}`);
+  return true;
+}
+
+function renderSyncStatus(message = "") {
+  const configured = isSyncConfigured();
+  const signedIn = configured && Boolean(cloudSession?.access_token && cloudUser);
+  const note = $("#storageNote");
+  if (note) note.innerHTML = signedIn ? '<i data-lucide="cloud-check"></i> 已登录私密同步' : '<i data-lucide="hard-drive"></i> 数据仅保存在此设备';
+  const status = $("#syncStatus");
+  const signedOut = $("#syncSignedOut");
+  const signedInPanel = $("#syncSignedIn");
+  if (!status || !signedOut || !signedInPanel) return;
+  if (!configured) {
+    status.textContent = "同步服务还没有连上。完成管理员设置后，这里就可以用邮箱登录。";
+    signedOut.hidden = true;
+    signedInPanel.hidden = true;
+  } else if (signedIn) {
+    status.textContent = message || "你的记录会加密传输，并只存到这个账号的私人空间。";
+    signedOut.hidden = true;
+    signedInPanel.hidden = false;
+    $("#syncAccountEmail").textContent = cloudUser.email || "已登录";
+  } else {
+    status.textContent = message || "登录后会先合并这台设备已有的记录，再同步到你的其他设备。";
+    signedOut.hidden = false;
+    signedInPanel.hidden = true;
+  }
+  iconRefresh();
+}
+
+function openSyncDialog() {
+  renderSyncStatus();
+  $("#syncDialog").showModal();
+}
+
+async function sendMagicLink() {
+  const email = $("#syncEmail").value.trim();
+  if (!email || !$("#syncEmail").checkValidity()) { $("#syncEmail").reportValidity(); return; }
+  if (!isSyncConfigured()) { renderSyncStatus("同步服务还没有准备好"); return; }
+  const button = $("#sendMagicLinkButton");
+  button.disabled = true;
+  try {
+    const response = await fetch(supabaseUrl("/auth/v1/otp"), {
+      method: "POST",
+      headers: { apikey: SYNC_CONFIG.anonKey, "Content-Type": "application/json" },
+      body: JSON.stringify({ email, create_user: true, gotrue_meta_security: {}, options: { emailRedirectTo: `${location.origin}${location.pathname}` } }),
+    });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({}));
+      throw new Error(detail.msg || detail.message || "登录链接没有发出");
+    }
+    renderSyncStatus("登录链接已发到邮箱。请在这台设备上打开它，回来后会自动同步。");
+  } catch (error) {
+    renderSyncStatus(error.message || "登录链接没有发出", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function initSync() {
+  const arrivedFromMagicLink = parseMagicLinkSession();
+  if (!isSyncConfigured() || !cloudSession?.access_token) { renderSyncStatus(); return; }
+  try {
+    await getCloudUser();
+    await syncCloudState({ pullFirst: true });
+    if (arrivedFromMagicLink) openSyncDialog();
+  } catch (error) {
+    saveCloudSession(null);
+    cloudUser = null;
+    renderSyncStatus("登录已失效，请重新发送登录链接", true);
+  }
 }
 
 function $ (selector) { return document.querySelector(selector); }
@@ -413,18 +638,53 @@ function clearDraftAfterArchive() {
 
 function renderHistory() {
   const root = $("#historyList");
-  if (!state.reviews.length) {
-    root.innerHTML = '<div class="empty-state"><i data-lucide="archive"></i><p>第一轮周复盘完成后，它会出现在这里。</p></div>';
+  const entries = [
+    ...state.reviews.map((review) => ({ type: "review", date: review.date, item: review })),
+    ...state.moments.map((moment) => ({ type: moment.kind === "micro" ? "micro" : "moment", date: moment.date, item: moment })),
+    ...state.materials.flatMap((material) => (material.notes || []).map((note) => ({ type: "note", date: note.date, item: note, material }))),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (!entries.length) {
+    root.innerHTML = '<div class="empty-state"><i data-lucide="archive"></i><p>你留下的周复盘、随手记录、微光和笔记，都会在这里慢慢排成一条线。</p></div>';
     iconRefresh(); return;
   }
-  root.innerHTML = state.reviews.map((review) => `
-    <article class="history-item">
-      <header><div><p class="eyebrow">一周回看</p><h2>${new Date(review.date).toLocaleDateString("zh-CN", { month: "long", day: "numeric" })}</h2></div><time>${new Date(review.date).toLocaleDateString("zh-CN")}</time></header>
-      <p><strong>发生了什么：</strong>${escapeHtml(review.facts)}</p>
-      <p><strong>留下的细节：</strong>${escapeHtml(review.insight)}</p>
-      <p><strong>阻力：</strong>${escapeHtml(review.barrier)}</p>
-      <p><strong>下一步：</strong>${escapeHtml(review.next)}</p>
-    </article>`).join("");
+  root.innerHTML = entries.map((entry) => {
+    if (entry.type === "review") {
+      const review = entry.item;
+      return `<article class="history-item history-review">
+        <header><div><p class="eyebrow">一周回看</p><h2>${new Date(review.date).toLocaleDateString("zh-CN", { month: "long", day: "numeric" })}</h2></div><time>${formatDate(review.date)}</time></header>
+        <p><strong>发生了什么：</strong>${escapeHtml(review.facts)}</p>
+        <p><strong>留下的细节：</strong>${escapeHtml(review.insight)}</p>
+        <p><strong>阻力：</strong>${escapeHtml(review.barrier)}</p>
+        <p><strong>下一步：</strong>${escapeHtml(review.next)}</p>
+      </article>`;
+    }
+
+    if (entry.type === "micro") {
+      const moment = entry.item;
+      const detail = [moment.detail, moment.reflection].filter(Boolean).map(escapeHtml).join("<br>");
+      return `<article class="history-item history-moment">
+        <header><div><p class="eyebrow">今日微光</p><h2>${escapeHtml(moment.actionText || moment.text)}</h2></div><time>${formatDate(moment.date)}</time></header>
+        ${detail ? `<p>${detail}</p>` : '<p class="history-muted">做过就已经很好了，没有留下感受也没关系。</p>'}
+      </article>`;
+    }
+
+    if (entry.type === "note") {
+      const { item: note, material } = entry;
+      return `<article class="history-item history-note">
+        <header><div><p class="eyebrow">素材笔记</p><h2>${escapeHtml(material.title)}</h2></div><time>${formatDate(note.date)}</time></header>
+        <p>${escapeHtml(note.text)}</p>
+      </article>`;
+    }
+
+    const moment = entry.item;
+    const material = state.materials.find((item) => item.id === moment.materialId);
+    return `<article class="history-item history-moment">
+      <header><div><p class="eyebrow">记录此刻</p><h2>${material ? escapeHtml(material.title) : "随手留下"}</h2></div><time>${formatDate(moment.date)}</time></header>
+      <p>${escapeHtml(moment.text)}</p>
+    </article>`;
+  }).join("");
+  iconRefresh();
 }
 
 function renderTopicSelector() {
@@ -542,6 +802,13 @@ function bindEvents() {
   $$(".add-action").forEach((button) => button.addEventListener("click", () => openActionDialog()));
   $("#notificationButton").addEventListener("click", openSettings);
   $("#mobileSettings").addEventListener("click", openSettings);
+  $("#syncButton").addEventListener("click", openSyncDialog);
+  $("#mobileSync").addEventListener("click", openSyncDialog);
+  $("#sendMagicLinkButton").addEventListener("click", sendMagicLink);
+  $("#syncNowButton").addEventListener("click", () => syncCloudState({ pullFirst: true }));
+  $("#signOutButton").addEventListener("click", () => {
+    saveCloudSession(null); cloudUser = null; renderSyncStatus("已退出这台设备，本机记录仍然保留。");
+  });
   $("#requestNotificationButton").addEventListener("click", requestNotifications);
   $("#reminderTime").addEventListener("change", (event) => { state.settings.reminderTime = event.target.value; saveState(); });
   $("#composer").addEventListener("submit", (event) => { event.preventDefault(); respond($("#answerInput").value); });
@@ -651,7 +918,11 @@ function bindEvents() {
     saveState(); renderMicroGlow();
   });
   $("#resetButton").addEventListener("click", () => {
-    if (confirm("确定清除这台设备上的所有复盘与行动记录吗？此操作无法撤销。")) { localStorage.removeItem(STORAGE_KEY); state = structuredClone(defaultState); renderHome(); renderReview(); renderHistory(); }
+    const syncing = isSyncConfigured() && cloudSession?.access_token && cloudUser;
+    const warning = syncing
+      ? "确定清除这个账号的所有记录吗？同步后，手机和电脑上的记录都会消失，此操作无法撤销。"
+      : "确定清除这台设备上的所有复盘与行动记录吗？此操作无法撤销。";
+    if (confirm(warning)) { state = structuredClone(defaultState); saveState(); refreshAll(); }
   });
 }
 
@@ -664,6 +935,7 @@ function init() {
   bindEvents();
   initVoice();
   initPwa();
+  initSync();
   setInterval(checkDueReminder, 60000);
   iconRefresh();
 }

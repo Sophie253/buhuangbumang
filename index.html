@@ -37,17 +37,23 @@
           <button class="quiet-button" id="notificationButton" type="button" title="设置提醒">
             <i data-lucide="bell-ring"></i><span>提醒设置</span>
           </button>
+          <button class="quiet-button" id="syncButton" type="button" title="同步我的记录">
+            <i data-lucide="cloud"></i><span>同步我的记录</span>
+          </button>
           <button class="quiet-button" id="resetButton" type="button" title="清除本机数据">
             <i data-lucide="rotate-ccw"></i><span>重新开始</span>
           </button>
-          <p class="local-note"><i data-lucide="hard-drive"></i> 数据仅保存在此设备</p>
+          <p class="local-note" id="storageNote"><i data-lucide="hard-drive"></i> 数据仅保存在此设备</p>
         </div>
       </aside>
 
       <main class="main-content">
         <header class="mobile-header">
           <div class="brand-mini"><span class="brand-mark">不</span><strong>不慌不忙</strong></div>
-          <button class="icon-button" id="mobileSettings" type="button" title="提醒设置" aria-label="提醒设置"><i data-lucide="bell-ring"></i></button>
+          <div class="mobile-header-actions">
+            <button class="icon-button" id="mobileSync" type="button" title="同步我的记录" aria-label="同步我的记录"><i data-lucide="cloud"></i></button>
+            <button class="icon-button" id="mobileSettings" type="button" title="提醒设置" aria-label="提醒设置"><i data-lucide="bell-ring"></i></button>
+          </div>
         </header>
 
         <section class="view active" id="homeView">
@@ -226,6 +232,24 @@
       </form>
     </dialog>
 
+    <dialog id="syncDialog" class="modal">
+      <form method="dialog" class="modal-card sync-card" id="syncForm">
+        <div class="modal-header"><div><p class="eyebrow">私密同步</p><h2>把记录带到另一台设备</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+        <p class="modal-copy" id="syncDescription">使用同一个邮箱登录手机和电脑。记录只属于这个账号，其他使用者无法看到。</p>
+        <div class="sync-status" id="syncStatus" aria-live="polite"></div>
+        <div id="syncSignedOut">
+          <label class="form-label" for="syncEmail">邮箱</label>
+          <input id="syncEmail" type="email" autocomplete="email" placeholder="name@example.com" />
+          <p class="field-hint">我们会发一封登录链接，不需要设置密码。</p>
+          <div class="modal-actions"><button class="secondary-button" value="cancel" type="submit" formnovalidate>以后再说</button><button class="primary-button" id="sendMagicLinkButton" value="none" type="button">发送登录链接</button></div>
+        </div>
+        <div id="syncSignedIn" hidden>
+          <div class="sync-account"><i data-lucide="shield-check"></i><span id="syncAccountEmail"></span></div>
+          <div class="modal-actions"><button class="secondary-button" id="signOutButton" value="none" type="button">退出此设备</button><button class="primary-button" id="syncNowButton" value="none" type="button">立即同步</button></div>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="materialDialog" class="modal">
       <form method="dialog" class="modal-card" id="materialForm">
         <div class="modal-header"><div><p class="eyebrow">我的素材</p><h2 id="materialDialogTitle">添加一个想持续使用的内容</h2></div><button class="icon-button" value="cancel" type="submit" formnovalidate title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
@@ -302,6 +326,7 @@
     </template>
 
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="sync-config.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,5 +1,5 @@
-const CACHE = "buhuangbumang-v16";
-const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest"];
+const CACHE = "buhuangbumang-v18";
+const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./sync-config.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));
