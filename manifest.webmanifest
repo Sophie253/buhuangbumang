@@ -1,7 +1,7 @@
 {
-  "name": "不慌不忙 - 个人成长督导",
+  "name": "不慌不忙 | 成长",
   "short_name": "不慌不忙",
-  "description": "一个坚定但不批判的个人成长督导。",
+  "description": "不慌不忙，成长不是作业。",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f6f7f2",
