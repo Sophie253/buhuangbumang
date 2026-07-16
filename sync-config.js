@@ -3,4 +3,5 @@
 window.BUHUANGBUMANG_SYNC_CONFIG = {
   url: "https://pekwyiagcgxohwongeqe.supabase.co",
   anonKey: "sb_publishable_IKsHkmcA-C_KopBAciAcHA_2B2od-zM",
+  appUrl: "https://sophie253.github.io/buhuangbumang/",
 };

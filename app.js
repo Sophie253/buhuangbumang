@@ -313,7 +313,12 @@ async function sendMagicLink() {
     const response = await fetch(supabaseUrl("/auth/v1/otp"), {
       method: "POST",
       headers: { apikey: SYNC_CONFIG.anonKey, "Content-Type": "application/json" },
-      body: JSON.stringify({ email, create_user: true, gotrue_meta_security: {}, options: { emailRedirectTo: `${location.origin}${location.pathname}` } }),
+      body: JSON.stringify({
+        email,
+        create_user: true,
+        gotrue_meta_security: {},
+        options: { emailRedirectTo: SYNC_CONFIG.appUrl || `${location.origin}${location.pathname}` },
+      }),
     });
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
