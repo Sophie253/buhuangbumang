@@ -11,6 +11,8 @@ const topics = {
   psychology: { label: "心理学", icon: "brain", className: "psychology" },
   history: { label: "历史", icon: "scroll-text", className: "history" },
   sifi: { label: "Sifi", icon: "rocket", className: "sifi" },
+  conversationalAi: { label: "对话式 AI", icon: "messages-square", className: "conversational-ai" },
+  agentAi: { label: "Agent AI", icon: "bot", className: "agent-ai" },
 };
 
 const materialKinds = {
@@ -29,6 +31,11 @@ const microCategories = {
 
 const builtInMicroActions = [
   { id: "self-water", category: "self", text: "喝一杯水。" },
+  { id: "self-stand", category: "self", text: "从椅子上站起来。" },
+  { id: "self-distance-look", category: "self", text: "看 6 米外 1 分钟。" },
+  { id: "self-chest-open", category: "self", text: "做一组扩胸运动。" },
+  { id: "self-blink", category: "self", text: "眨眼 5 秒。" },
+  { id: "self-grip-ring", category: "self", text: "握力圈 10 下。" },
   { id: "self-stretch", category: "self", text: "伸展 30 秒。" },
   { id: "self-breathe", category: "self", text: "到窗边深呼吸一次。" },
   { id: "self-walk", category: "self", text: "走 5 分钟。" },
@@ -53,6 +60,8 @@ const builtInMicroActions = [
   { id: "life-tidy", category: "life", text: "收好一件物品。" },
   { id: "life-window", category: "life", text: "打开窗。" },
   { id: "life-desk", category: "life", text: "整理桌面上一小块地方。" },
+  { id: "life-mat", category: "life", text: "看一眼 MAT。" },
+  { id: "life-orbi", category: "life", text: "看一眼 Orbi。" },
 ];
 
 const stages = [

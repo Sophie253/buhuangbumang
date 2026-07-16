@@ -82,6 +82,8 @@ h2 { font-size: 18px; letter-spacing: 0; margin-bottom: 0; }
 .topic-pill.psychology { background: #f7e4e8; color: #9a4261; }
 .topic-pill.history { background: #e6eee1; color: #496c39; }
 .topic-pill.sifi { background: #e6edf1; color: #365866; }
+.topic-pill.conversational-ai { background: #e9e4f5; color: #57427d; }
+.topic-pill.agent-ai { background: #e0f1ed; color: #17685d; }
 .review-status-panel { padding: 18px 20px; display: grid; align-content: start; justify-items: start; }
 .status-topline { display: flex; justify-content: space-between; width: 100%; color: var(--muted); font-size: 13px; }
 .status-pill { background: #edf1ef; border-radius: 999px; color: var(--teal); font-weight: 800; padding: 4px 8px; font-size: 11px; }
